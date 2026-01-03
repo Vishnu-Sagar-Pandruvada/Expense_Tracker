@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Expense Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>💰 Daily Expense Tracker</h1>
+            <p class="subtitle">Track your daily balance and expenses</p>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking connection...</span>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="entry">📝 Entry</button>
+            <button class="tab-btn" data-tab="calendar">📅 Calendar</button>
+            <button class="tab-btn" data-tab="daily">📊 Daily View</button>
+            <button class="tab-btn" data-tab="monthly">📈 Monthly View</button>
+            <button class="tab-btn" data-tab="preview">🔍 Preview & Test</button>
+        </nav>
+
+        <!-- Tab Content -->
+        <main class="tab-content">
+            <!-- Entry Tab -->
+            <section id="entry" class="tab-panel active">
+                <div class="card">
+                    <h2>Add Daily Balance</h2>
+                    <form id="balanceForm">
+                        <div class="form-group">
+                            <label for="entryDate">Select Date</label>
+                            <input type="date" id="entryDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="balanceAmount">Balance Amount (₹)</label>
+                            <input type="number" id="balanceAmount" step="0.01" min="0" placeholder="Enter your balance" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description (Optional)</label>
+                            <input type="text" id="description" placeholder="e.g., End of day balance">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Balance Entry</button>
+                    </form>
+                </div>
+
+                <!-- Recent Entries -->
+                <div class="card">
+                    <h2>Recent Entries</h2>
+                    <div id="recentEntries" class="entries-list">
+                        <p class="no-data">No entries yet. Add your first balance entry above.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar Tab -->
+            <section id="calendar" class="tab-panel">
+                <div class="card">
+                    <div class="calendar-header">
+                        <button id="prevMonth" class="btn btn-icon">◀</button>
+                        <h2 id="currentMonth">January 2025</h2>
+                        <button id="nextMonth" class="btn btn-icon">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid">
+                        <!-- Calendar will be generated here -->
+                    </div>
+                </div>
+                
+                <!-- Selected Day Details -->
+                <div class="card" id="selectedDayCard" style="display: none;">
+                    <h3 id="selectedDayTitle">Day Details</h3>
+                    <div id="selectedDayDetails"></div>
+                </div>
+            </section>
+
+            <!-- Daily View Tab -->
+            <section id="daily" class="tab-panel">
+                <div class="card">
+                    <h2>Daily Expense Analysis</h2>
+                    <div class="date-range-picker">
+                        <div class="form-group">
+                            <label for="dailyStartDate">From Date</label>
+                            <input type="date" id="dailyStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="dailyEndDate">To Date</label>
+                            <input type="date" id="dailyEndDate">
+                        </div>
+                        <button id="filterDaily" class="btn btn-primary">Apply Filter</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <span class="summary-label">Total Days</span>
+                            <span class="summary-value" id="totalDays">0</span>
+                        </div>
+                        <div class="summary-card expense">
+                            <span class="summary-label">Total Expenses</span>
+                            <span class="summary-value" id="totalExpenses">₹0</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-label">Avg Daily Expense</span>
+                            <span class="summary-value" id="avgExpense">₹0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Daily Breakdown</h3>
+                    <div id="dailyBreakdown" class="breakdown-list">
+                        <p class="no-data">Select a date range to view daily expenses.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Monthly View Tab -->
+            <section id="monthly" class="tab-panel">
+                <div class="card">
+                    <h2>Monthly Expense Summary</h2>
+                    <div class="form-group">
+                        <label for="monthSelect">Select Month</label>
+                        <input type="month" id="monthSelect">
+                    </div>
+                    <button id="filterMonthly" class="btn btn-primary">View Monthly Report</button>
+                </div>
+
+                <div class="card" id="monthlyReport" style="display: none;">
+                    <h3 id="monthlyReportTitle">Monthly Report</h3>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <span class="summary-label">Opening Balance</span>
+                            <span class="summary-value" id="monthOpening">₹0</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-label">Closing Balance</span>
+                            <span class="summary-value" id="monthClosing">₹0</span>
+                        </div>
+                        <div class="summary-card expense">
+                            <span class="summary-label">Total Spent</span>
+                            <span class="summary-value" id="monthTotal">₹0</span>
+                        </div>
+                    </div>
+                    <div id="monthlyBreakdown" class="breakdown-list"></div>
+                </div>
+            </section>
+
+            <!-- Preview & Test Tab -->
+            <section id="preview" class="tab-panel">
+                <div class="card">
+                    <h2>🧪 Test Your Expense Tracker</h2>
+                    <p class="info-text">This is a live testing environment. All data you enter will be saved to the database.</p>
+                    
+                    <div class="test-scenario">
+                        <h3>Quick Test Scenario</h3>
+                        <p>Follow these steps to test the application:</p>
+                        <ol class="test-steps">
+                            <li>Go to <strong>Entry</strong> tab and add today's balance</li>
+                            <li>Add yesterday's balance (the app will calculate expense)</li>
+                            <li>Check <strong>Calendar</strong> to see visual representation</li>
+                            <li>Use <strong>Daily View</strong> for detailed analysis</li>
+                            <li>Check <strong>Monthly View</strong> for summary</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Live Data Preview</h3>
+                    <div id="livePreview">
+                        <div class="preview-section">
+                            <h4>All Entries</h4>
+                            <div id="allEntriesPreview" class="entries-list">
+                                <p class="no-data">No data available. Start by adding entries.</p>
+                            </div>
+                        </div>
+                        <div class="preview-section">
+                            <h4>Calculated Expenses</h4>
+                            <div id="calculatedExpensesPreview" class="entries-list">
+                                <p class="no-data">Add at least 2 entries to see expense calculations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🔧 API Connection Test</h3>
+                    <button id="testConnection" class="btn btn-primary">Test Backend Connection</button>
+                    <div id="apiTestResult" class="api-result"></div>
+                </div>
+
+                <div class="card danger">
+                    <h3>⚠️ Data Management</h3>
+                    <p>Use with caution - these actions affect your saved data.</p>
+                    <button id="clearAllData" class="btn btn-danger">Clear All Data</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Daily Expense Tracker © 2025 | Built with Spring Boot & MySQL</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
