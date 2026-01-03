@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Expense Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables */
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-color); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
+        .app-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        .header { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, var(--primary-color), #7c3aed); border-radius: 16px; color: white; margin-bottom: 20px; box-shadow: var(--shadow-lg); }
+        .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 8px; }
+        .subtitle { font-size: 1.1rem; opacity: 0.9; }
+        .connection-status { display: inline-flex; align-items: center; gap: 8px; margin-top: 15px; padding: 8px 16px; background: rgba(255, 255, 255, 0.2); border-radius: 20px; font-size: 0.875rem; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warning-color); animation: pulse 2s infinite; }
+        .status-dot.connected { background: var(--success-color); animation: none; }
+        .status-dot.disconnected { background: var(--danger-color); animation: none; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Tab Navigation */
+        .tab-nav { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex: 1; min-width: 120px; padding: 12px 20px; border: none; background: var(--card-bg); color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--shadow); }
+        .tab-btn:hover, .tab-btn.active { background: var(--primary-color); color: white; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--card-bg); border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+        .card h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; color: var(--text-primary); }
+        .card h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+        .card.danger { border-left: 4px solid var(--danger-color); }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+        .form-group input { width: 100%; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 1rem; transition: border-color 0.3s ease; }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); }
+
+        /* Buttons */
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-icon { padding: 10px 16px; background: var(--bg-color); color: var(--text-primary); }
+        .btn-icon:hover { background: var(--primary-color); color: white; }
+
+        /* Date Range */
+        .date-range-picker { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+        .date-range-picker .form-group { flex: 1; min-width: 150px; margin-bottom: 0; }
+
+        /* Summary Cards */
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .summary-card { background: linear-gradient(135deg, var(--primary-color), #7c3aed); color: white; padding: 20px; border-radius: 12px; text-align: center; }
+        .summary-card.expense { background: linear-gradient(135deg, var(--danger-color), #dc2626); }
+        .summary-label { display: block; font-size: 0.875rem; opacity: 0.9; margin-bottom: 8px; }
+        .summary-value { display: block; font-size: 1.5rem; font-weight: 700; }
+
+        /* Calendar */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-day-header { text-align: center; font-weight: 600; color: var(--text-secondary); padding: 10px; font-size: 0.875rem; }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; background: var(--bg-color); cursor: pointer; transition: all 0.3s ease; font-size: 0.875rem; }
+        .calendar-day:hover { background: var(--primary-color); color: white; }
+        .calendar-day.empty { background: transparent; cursor: default; }
+        .calendar-day.empty:hover { background: transparent; }
+        .calendar-day.has-data { background: #dbeafe; border: 2px solid var(--primary-color); }
+        .calendar-day.has-expense { background: #fee2e2; border: 2px solid var(--danger-color); }
+        .calendar-day.today { background: var(--primary-color); color: white; }
+        .calendar-day .day-number { font-weight: 600; }
+        .calendar-day .day-amount { font-size: 0.7rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+        /* Entries List */
+        .entries-list { max-height: 400px; overflow-y: auto; }
+        .entry-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--bg-color); border-radius: 8px; margin-bottom: 10px; transition: all 0.3s ease; }
+        .entry-item:hover { transform: translateX(5px); }
+        .entry-info { flex: 1; }
+        .entry-date { font-weight: 600; color: var(--text-primary); }
+        .entry-description { font-size: 0.875rem; color: var(--text-secondary); }
+        .entry-amount { font-size: 1.25rem; font-weight: 700; color: var(--primary-color); }
+        .entry-expense { color: var(--danger-color); }
+        .entry-actions { display: flex; gap: 8px; margin-left: 16px; }
+        .entry-actions button { padding: 8px 12px; font-size: 0.875rem; }
+
+        /* Breakdown */
+        .breakdown-list { max-height: 500px; overflow-y: auto; }
+        .breakdown-item { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; padding: 16px; background: var(--bg-color); border-radius: 8px; margin-bottom: 10px; align-items: center; }
+        .breakdown-item.header { background: var(--primary-color); color: white; font-weight: 600; }
+        .breakdown-date { font-weight: 500; }
+        .breakdown-balance { color: var(--primary-color); font-weight: 600; }
+        .breakdown-expense { color: var(--danger-color); font-weight: 600; }
+        .breakdown-note { color: var(--text-secondary); font-size: 0.875rem; }
+
+        .no-data { text-align: center; color: var(--text-secondary); padding: 40px 20px; font-style: italic; }
+
+        /* Test */
+        .test-scenario { background: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 4px solid var(--success-color); }
+        .test-steps { margin-left: 20px; margin-top: 10px; }
+        .test-steps li { margin-bottom: 8px; }
+        .info-text { color: var(--text-secondary); margin-bottom: 20px; }
+        .preview-section { margin-bottom: 24px; }
+        .preview-section h4 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: var(--text-secondary); }
+
+        .api-result { margin-top: 16px; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 0.875rem; display: none; }
+        .api-result.success { display: block; background: #f0fdf4; border: 1px solid var(--success-color); color: #166534; }
+        .api-result.error { display: block; background: #fef2f2; border: 1px solid var(--danger-color); color: #991b1b; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; border-radius: 8px; color: white; font-weight: 500; z-index: 1000; transform: translateY(100px); opacity: 0; transition: all 0.3s ease; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: var(--success-color); }
+        .toast.error { background: var(--danger-color); }
+        .toast.warning { background: var(--warning-color); }
+
+        .footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.875rem; }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.75rem; }
+            .tab-btn { min-width: 100px; padding: 10px 12px; font-size: 0.85rem; }
+            .breakdown-item { grid-template-columns: 1fr 1fr; }
+            .date-range-picker { flex-direction: column; }
+            .summary-cards { grid-template-columns: 1fr; }
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>💰 Daily Expense Tracker</h1>
+            <p class="subtitle">Track your daily balance and expenses</p>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">Checking connection...</span>
+            </div>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="entry">📝 Entry</button>
+            <button class="tab-btn" data-tab="calendar">📅 Calendar</button>
+            <button class="tab-btn" data-tab="daily">📊 Daily View</button>
+            <button class="tab-btn" data-tab="monthly">📈 Monthly View</button>
+            <button class="tab-btn" data-tab="preview">🔍 Preview & Test</button>
+        </nav>
+
+        <main class="tab-content">
+            <!-- Entry Tab -->
+            <section id="entry" class="tab-panel active">
+                <div class="card">
+                    <h2>Add Daily Balance</h2>
+                    <form id="balanceForm">
+                        <div class="form-group">
+                            <label for="entryDate">Select Date</label>
+                            <input type="date" id="entryDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="balanceAmount">Balance Amount (₹)</label>
+                            <input type="number" id="balanceAmount" step="0.01" min="0" placeholder="Enter your balance" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Description (Optional)</label>
+                            <input type="text" id="description" placeholder="e.g., End of day balance">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Balance Entry</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h2>Recent Entries</h2>
+                    <div id="recentEntries" class="entries-list">
+                        <p class="no-data">No entries yet. Add your first balance entry above.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Calendar Tab -->
+            <section id="calendar" class="tab-panel">
+                <div class="card">
+                    <div class="calendar-header">
+                        <button id="prevMonth" class="btn btn-icon">◀</button>
+                        <h2 id="currentMonth">January 2025</h2>
+                        <button id="nextMonth" class="btn btn-icon">▶</button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+                <div class="card" id="selectedDayCard" style="display: none;">
+                    <h3 id="selectedDayTitle">Day Details</h3>
+                    <div id="selectedDayDetails"></div>
+                </div>
+            </section>
+
+            <!-- Daily View Tab -->
+            <section id="daily" class="tab-panel">
+                <div class="card">
+                    <h2>Daily Expense Analysis</h2>
+                    <div class="date-range-picker">
+                        <div class="form-group">
+                            <label for="dailyStartDate">From Date</label>
+                            <input type="date" id="dailyStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="dailyEndDate">To Date</label>
+                            <input type="date" id="dailyEndDate">
+                        </div>
+                        <button id="filterDaily" class="btn btn-primary">Apply Filter</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <span class="summary-label">Total Days</span>
+                            <span class="summary-value" id="totalDays">0</span>
+                        </div>
+                        <div class="summary-card expense">
+                            <span class="summary-label">Total Expenses</span>
+                            <span class="summary-value" id="totalExpenses">₹0</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-label">Avg Daily Expense</span>
+                            <span class="summary-value" id="avgExpense">₹0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Daily Breakdown</h3>
+                    <div id="dailyBreakdown" class="breakdown-list">
+                        <p class="no-data">Select a date range to view daily expenses.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Monthly View Tab -->
+            <section id="monthly" class="tab-panel">
+                <div class="card">
+                    <h2>Monthly Expense Summary</h2>
+                    <div class="form-group">
+                        <label for="monthSelect">Select Month</label>
+                        <input type="month" id="monthSelect">
+                    </div>
+                    <button id="filterMonthly" class="btn btn-primary">View Monthly Report</button>
+                </div>
+                <div class="card" id="monthlyReport" style="display: none;">
+                    <h3 id="monthlyReportTitle">Monthly Report</h3>
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <span class="summary-label">Opening Balance</span>
+                            <span class="summary-value" id="monthOpening">₹0</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-label">Closing Balance</span>
+                            <span class="summary-value" id="monthClosing">₹0</span>
+                        </div>
+                        <div class="summary-card expense">
+                            <span class="summary-label">Total Spent</span>
+                            <span class="summary-value" id="monthTotal">₹0</span>
+                        </div>
+                    </div>
+                    <div id="monthlyBreakdown" class="breakdown-list"></div>
+                </div>
+            </section>
+
+            <!-- Preview Tab -->
+            <section id="preview" class="tab-panel">
+                <div class="card">
+                    <h2>🧪 Test Your Expense Tracker</h2>
+                    <p class="info-text">This is a live testing environment. All data is stored locally or in the database.</p>
+                    <div class="test-scenario">
+                        <h3>Quick Test Scenario</h3>
+                        <ol class="test-steps">
+                            <li>Go to <strong>Entry</strong> tab and add today's balance</li>
+                            <li>Add yesterday's balance (the app will calculate expense)</li>
+                            <li>Check <strong>Calendar</strong> to see visual representation</li>
+                            <li>Use <strong>Daily View</strong> for detailed analysis</li>
+                            <li>Check <strong>Monthly View</strong> for summary</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>📊 Live Data Preview</h3>
+                    <div id="livePreview">
+                        <div class="preview-section">
+                            <h4>All Entries</h4>
+                            <div id="allEntriesPreview" class="entries-list">
+                                <p class="no-data">No data available. Start by adding entries.</p>
+                            </div>
+                        </div>
+                        <div class="preview-section">
+                            <h4>Calculated Expenses</h4>
+                            <div id="calculatedExpensesPreview" class="entries-list">
+                                <p class="no-data">Add at least 2 entries to see expense calculations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>🔧 API Connection Test</h3>
+                    <button id="testConnection" class="btn btn-primary">Test Backend Connection</button>
+                    <div id="apiTestResult" class="api-result"></div>
+                </div>
+                <div class="card danger">
+                    <h3>⚠️ Data Management</h3>
+                    <p>Use with caution - these actions affect your saved data.</p>
+                    <button id="clearAllData" class="btn btn-danger">Clear All Data</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Daily Expense Tracker © 2025 | Built with Spring Boot & MySQL</p>
+        </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8080/api';
+
+        // State
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let balanceEntries = [];
+
+        // DOM Elements
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        const balanceForm = document.getElementById('balanceForm');
+        const entryDate = document.getElementById('entryDate');
+        const balanceAmount = document.getElementById('balanceAmount');
+        const description = document.getElementById('description');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            entryDate.value = today;
+            document.getElementById('dailyStartDate').value = getFirstDayOfMonth();
+            document.getElementById('dailyEndDate').value = today;
+            document.getElementById('monthSelect').value = today.substring(0, 7);
+
+            initializeTabs();
+            renderCalendar();
+            initializeEventListeners();
+            checkBackendConnection();
+            loadAllEntries();
+        });
+
+        function initializeTabs() {
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.dataset.tab;
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    tabPanels.forEach(panel => panel.classList.remove('active'));
+                    document.getElementById(tabId).classList.add('active');
+                    if (tabId === 'preview') refreshPreview();
+                    else if (tabId === 'calendar') renderCalendar();
+                });
+            });
+        }
+
+        function initializeEventListeners() {
+            balanceForm.addEventListener('submit', handleBalanceSubmit);
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentMonth--;
+                if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+                renderCalendar();
+            });
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentMonth++;
+                if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+                renderCalendar();
+            });
+            document.getElementById('filterDaily').addEventListener('click', filterDailyView);
+            document.getElementById('filterMonthly').addEventListener('click', filterMonthlyView);
+            document.getElementById('testConnection').addEventListener('click', testBackendConnection);
+            document.getElementById('clearAllData').addEventListener('click', clearAllData);
+        }
+
+        async function checkBackendConnection() {
+            const statusDot = document.querySelector('.status-dot');
+            const statusText = document.querySelector('.status-text');
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'Connected to Backend';
+                    return true;
+                }
+            } catch (error) { console.log('Backend not available'); }
+            statusDot.className = 'status-dot disconnected';
+            statusText.textContent = 'Offline Mode (Local Storage)';
+            return false;
+        }
+
+        async function loadAllEntries() {
+            try {
+                const isConnected = await checkBackendConnection();
+                if (isConnected) {
+                    const response = await fetch(`${API_BASE_URL}/balances`);
+                    if (response.ok) balanceEntries = await response.json();
+                } else {
+                    const stored = localStorage.getItem('balanceEntries');
+                    balanceEntries = stored ? JSON.parse(stored) : [];
+                }
+                balanceEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+                updateRecentEntries();
+                renderCalendar();
+            } catch (error) {
+                console.error('Error loading entries:', error);
+                showToast('Error loading data', 'error');
+            }
+        }
+
+        async function handleBalanceSubmit(e) {
+            e.preventDefault();
+            const entry = {
+                date: entryDate.value,
+                balance: parseFloat(balanceAmount.value),
+                description: description.value || 'Daily balance'
+            };
+            try {
+                const isConnected = await checkBackendConnection();
+                if (isConnected) {
+                    const existingEntry = balanceEntries.find(e => e.date === entry.date);
+                    if (existingEntry) {
+                        const response = await fetch(`${API_BASE_URL}/balances/${existingEntry.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(entry)
+                        });
+                        if (response.ok) {
+                            const updatedEntry = await response.json();
+                            const index = balanceEntries.findIndex(e => e.id === existingEntry.id);
+                            balanceEntries[index] = updatedEntry;
+                            showToast('Balance updated successfully!', 'success');
+                        }
+                    } else {
+                        const response = await fetch(`${API_BASE_URL}/balances`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(entry)
+                        });
+                        if (response.ok) {
+                            const newEntry = await response.json();
+                            balanceEntries.push(newEntry);
+                            showToast('Balance added successfully!', 'success');
+                        }
+                    }
+                } else {
+                    const existingIndex = balanceEntries.findIndex(e => e.date === entry.date);
+                    if (existingIndex !== -1) {
+                        balanceEntries[existingIndex] = { ...balanceEntries[existingIndex], ...entry };
+                        showToast('Balance updated (offline mode)', 'warning');
+                    } else {
+                        entry.id = Date.now();
+                        balanceEntries.push(entry);
+                        showToast('Balance added (offline mode)', 'warning');
+                    }
+                    localStorage.setItem('balanceEntries', JSON.stringify(balanceEntries));
+                }
+                balanceEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+                updateRecentEntries();
+                renderCalendar();
+                balanceAmount.value = '';
+                description.value = '';
+            } catch (error) {
+                console.error('Error saving entry:', error);
+                showToast('Error saving entry', 'error');
+            }
+        }
+
+        async function deleteEntry(id) {
+            if (!confirm('Are you sure you want to delete this entry?')) return;
+            try {
+                const isConnected = await checkBackendConnection();
+                if (isConnected) {
+                    const response = await fetch(`${API_BASE_URL}/balances/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        balanceEntries = balanceEntries.filter(e => e.id !== id);
+                        showToast('Entry deleted successfully!', 'success');
+                    }
+                } else {
+                    balanceEntries = balanceEntries.filter(e => e.id !== id);
+                    localStorage.setItem('balanceEntries', JSON.stringify(balanceEntries));
+                    showToast('Entry deleted (offline mode)', 'warning');
+                }
+                updateRecentEntries();
+                renderCalendar();
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+                showToast('Error deleting entry', 'error');
+            }
+        }
+
+        function updateRecentEntries() {
+            const container = document.getElementById('recentEntries');
+            if (balanceEntries.length === 0) {
+                container.innerHTML = '<p class="no-data">No entries yet. Add your first balance entry above.</p>';
+                return;
+            }
+            const recentEntries = [...balanceEntries].reverse().slice(0, 10);
+            container.innerHTML = recentEntries.map(entry => {
+                const expense = calculateExpenseForDate(entry.date);
+                const expenseText = expense !== null ? `<span class="entry-expense">Spent: ₹${expense.toFixed(2)}</span>` : '';
+                return `
+                    <div class="entry-item">
+                        <div class="entry-info">
+                            <div class="entry-date">${formatDate(entry.date)} ${getDayIndicator(entry.date)}</div>
+                            <div class="entry-description">${entry.description || ''} ${expenseText}</div>
+                        </div>
+                        <div class="entry-amount">₹${entry.balance.toFixed(2)}</div>
+                        <div class="entry-actions">
+                            <button class="btn btn-danger" onclick="deleteEntry(${entry.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getDayIndicator(dateStr) {
+            const entryDate = new Date(dateStr);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            entryDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((entryDate - today) / (1000 * 60 * 60 * 24));
+            if (diffDays === 0) return '<span style="color: #10b981; font-weight: 600;">(Today)</span>';
+            if (diffDays === -1) return '<span style="color: #f59e0b; font-weight: 600;">(Yesterday)</span>';
+            if (diffDays === 1) return '<span style="color: #3b82f6; font-weight: 600;">(Tomorrow)</span>';
+            if (diffDays < 0) return `<span style="color: #6b7280;">(${Math.abs(diffDays)} days ago)</span>`;
+            return `<span style="color: #6b7280;">(${diffDays} days from now)</span>`;
+        }
+
+        function calculateExpenseForDate(dateStr) {
+            const currentEntry = balanceEntries.find(e => e.date === dateStr);
+            if (!currentEntry) return null;
+            const currentDate = new Date(dateStr);
+            const prevDate = new Date(currentDate);
+            prevDate.setDate(prevDate.getDate() - 1);
+            const prevDateStr = prevDate.toISOString().split('T')[0];
+            const prevEntry = balanceEntries.find(e => e.date === prevDateStr);
+            if (!prevEntry) return null;
+            const expense = prevEntry.balance - currentEntry.balance;
+            return expense > 0 ? expense : 0;
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('currentMonth').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            let html = dayHeaders.map(day => `<div class="calendar-day-header">${day}</div>`).join('');
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const today = new Date();
+            for (let i = 0; i < firstDay; i++) html += '<div class="calendar-day empty"></div>';
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const entry = balanceEntries.find(e => e.date === dateStr);
+                const expense = calculateExpenseForDate(dateStr);
+                let classes = 'calendar-day';
+                let amountText = '';
+                if (entry) {
+                    classes += expense !== null && expense > 0 ? ' has-expense' : ' has-data';
+                    amountText = `<div class="day-amount">₹${entry.balance.toFixed(0)}</div>`;
+                }
+                if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) classes += ' today';
+                html += `<div class="${classes}" onclick="showDayDetails('${dateStr}')"><span class="day-number">${day}</span>${amountText}</div>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        function showDayDetails(dateStr) {
+            const card = document.getElementById('selectedDayCard');
+            const title = document.getElementById('selectedDayTitle');
+            const details = document.getElementById('selectedDayDetails');
+            const entry = balanceEntries.find(e => e.date === dateStr);
+            const expense = calculateExpenseForDate(dateStr);
+            title.textContent = `Details for ${formatDate(dateStr)} ${getDayIndicator(dateStr)}`;
+            if (entry) {
+                let html = `<div class="entry-item"><div class="entry-info"><div class="entry-date">Balance</div><div class="entry-description">${entry.description || 'No description'}</div></div><div class="entry-amount">₹${entry.balance.toFixed(2)}</div></div>`;
+                if (expense !== null) {
+                    html += `<div class="entry-item"><div class="entry-info"><div class="entry-date">Daily Expense</div><div class="entry-description">Calculated from previous day</div></div><div class="entry-amount entry-expense">₹${expense.toFixed(2)}</div></div>`;
+                } else {
+                    html += `<p class="no-data">No previous day entry to calculate expense.</p>`;
+                }
+                details.innerHTML = html;
+            } else {
+                details.innerHTML = `<p class="no-data">No entry for this date.</p><button class="btn btn-primary" onclick="quickAddEntry('${dateStr}')">Add Entry for This Date</button>`;
+            }
+            card.style.display = 'block';
+        }
+
+        function quickAddEntry(dateStr) {
+            entryDate.value = dateStr;
+            document.querySelector('[data-tab="entry"]').click();
+            balanceAmount.focus();
+        }
+
+        function filterDailyView() {
+            const startDate = document.getElementById('dailyStartDate').value;
+            const endDate = document.getElementById('dailyEndDate').value;
+            if (!startDate || !endDate) { showToast('Please select both dates', 'error'); return; }
+            const filteredEntries = balanceEntries.filter(e => e.date >= startDate && e.date <= endDate);
+            if (filteredEntries.length === 0) {
+                document.getElementById('dailyBreakdown').innerHTML = '<p class="no-data">No entries found.</p>';
+                document.getElementById('totalDays').textContent = '0';
+                document.getElementById('totalExpenses').textContent = '₹0';
+                document.getElementById('avgExpense').textContent = '₹0';
+                return;
+            }
+            let totalExpenses = 0, expenseDays = 0;
+            const breakdownHtml = filteredEntries.map(entry => {
+                const expense = calculateExpenseForDate(entry.date);
+                if (expense !== null && expense > 0) { totalExpenses += expense; expenseDays++; }
+                return `<div class="breakdown-item"><div class="breakdown-date">${formatDate(entry.date)} ${getDayIndicator(entry.date)}</div><div class="breakdown-balance">₹${entry.balance.toFixed(2)}</div><div class="breakdown-expense">${expense !== null ? '₹' + expense.toFixed(2) : 'N/A'}</div><div class="breakdown-note">${entry.description || '-'}</div></div>`;
+            }).join('');
+            document.getElementById('dailyBreakdown').innerHTML = `<div class="breakdown-item header"><div>Date</div><div>Balance</div><div>Expense</div><div>Note</div></div>${breakdownHtml}`;
+            document.getElementById('totalDays').textContent = filteredEntries.length;
+            document.getElementById('totalExpenses').textContent = `₹${totalExpenses.toFixed(2)}`;
+            document.getElementById('avgExpense').textContent = expenseDays > 0 ? `₹${(totalExpenses / expenseDays).toFixed(2)}` : '₹0';
+        }
+
+        function filterMonthlyView() {
+            const monthStr = document.getElementById('monthSelect').value;
+            if (!monthStr) { showToast('Please select a month', 'error'); return; }
+            const [year, month] = monthStr.split('-').map(Number);
+            const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+            const lastDay = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+            const monthlyEntries = balanceEntries.filter(e => e.date >= firstDay && e.date <= lastDay);
+            const report = document.getElementById('monthlyReport');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('monthlyReportTitle').textContent = `${monthNames[month - 1]} ${year} Report`;
+            if (monthlyEntries.length === 0) {
+                document.getElementById('monthOpening').textContent = '₹0';
+                document.getElementById('monthClosing').textContent = '₹0';
+                document.getElementById('monthTotal').textContent = '₹0';
+                document.getElementById('monthlyBreakdown').innerHTML = '<p class="no-data">No entries for this month.</p>';
+                report.style.display = 'block';
+                return;
+            }
+            monthlyEntries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            const openingBalance = monthlyEntries[0].balance;
+            const closingBalance = monthlyEntries[monthlyEntries.length - 1].balance;
+            let totalSpent = 0;
+            monthlyEntries.forEach(entry => { const expense = calculateExpenseForDate(entry.date); if (expense !== null && expense > 0) totalSpent += expense; });
+            document.getElementById('monthOpening').textContent = `₹${openingBalance.toFixed(2)}`;
+            document.getElementById('monthClosing').textContent = `₹${closingBalance.toFixed(2)}`;
+            document.getElementById('monthTotal').textContent = `₹${totalSpent.toFixed(2)}`;
+            const breakdownHtml = monthlyEntries.map(entry => {
+                const expense = calculateExpenseForDate(entry.date);
+                return `<div class="breakdown-item"><div class="breakdown-date">${formatDate(entry.date)}</div><div class="breakdown-balance">₹${entry.balance.toFixed(2)}</div><div class="breakdown-expense">${expense !== null ? '₹' + expense.toFixed(2) : 'N/A'}</div><div class="breakdown-note">${entry.description || '-'}</div></div>`;
+            }).join('');
+            document.getElementById('monthlyBreakdown').innerHTML = `<div class="breakdown-item header"><div>Date</div><div>Balance</div><div>Expense</div><div>Note</div></div>${breakdownHtml}`;
+            report.style.display = 'block';
+        }
+
+        function refreshPreview() {
+            const allEntriesContainer = document.getElementById('allEntriesPreview');
+            if (balanceEntries.length === 0) {
+                allEntriesContainer.innerHTML = '<p class="no-data">No data available.</p>';
+            } else {
+                const sortedEntries = [...balanceEntries].sort((a, b) => new Date(b.date) - new Date(a.date));
+                allEntriesContainer.innerHTML = sortedEntries.map(entry => `<div class="entry-item"><div class="entry-info"><div class="entry-date">${formatDate(entry.date)} ${getDayIndicator(entry.date)}</div><div class="entry-description">${entry.description || 'No description'}</div></div><div class="entry-amount">₹${entry.balance.toFixed(2)}</div></div>`).join('');
+            }
+            const expensesContainer = document.getElementById('calculatedExpensesPreview');
+            const expenseData = balanceEntries.map(entry => ({ date: entry.date, expense: calculateExpenseForDate(entry.date) })).filter(e => e.expense !== null && e.expense > 0);
+            if (expenseData.length === 0) {
+                expensesContainer.innerHTML = '<p class="no-data">Add at least 2 consecutive day entries.</p>';
+            } else {
+                expensesContainer.innerHTML = expenseData.map(data => `<div class="entry-item"><div class="entry-info"><div class="entry-date">${formatDate(data.date)} ${getDayIndicator(data.date)}</div><div class="entry-description">Daily Expense</div></div><div class="entry-amount entry-expense">₹${data.expense.toFixed(2)}</div></div>`).join('');
+            }
+        }
+
+        async function testBackendConnection() {
+            const resultDiv = document.getElementById('apiTestResult');
+            resultDiv.className = 'api-result';
+            resultDiv.textContent = 'Testing...';
+            resultDiv.style.display = 'block';
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.className = 'api-result success';
+                    resultDiv.innerHTML = `✅ <strong>Connected!</strong><br>Status: ${data.status}<br>Database: ${data.database || 'Connected'}`;
+                } else throw new Error('Server error');
+            } catch (error) {
+                resultDiv.className = 'api-result error';
+                resultDiv.innerHTML = `❌ <strong>Not Connected</strong><br>Using local storage instead.<br>Start the Spring Boot backend to enable database persistence.`;
+            }
+        }
+
+        async function clearAllData() {
+            if (!confirm('Delete ALL data?')) return;
+            try {
+                const isConnected = await checkBackendConnection();
+                if (isConnected) {
+                    const response = await fetch(`${API_BASE_URL}/balances/clear`, { method: 'DELETE' });
+                    if (response.ok) { balanceEntries = []; showToast('All data cleared!', 'success'); }
+                } else {
+                    localStorage.removeItem('balanceEntries');
+                    balanceEntries = [];
+                    showToast('Local data cleared!', 'warning');
+                }
+                updateRecentEntries();
+                renderCalendar();
+                refreshPreview();
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error clearing data', 'error');
+            }
+        }
+
+        function formatDate(dateStr) {
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateStr).toLocaleDateString('en-US', options);
+        }
+
+        function getFirstDayOfMonth() {
+            const date = new Date();
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        window.deleteEntry = deleteEntry;
+        window.showDayDetails = showDayDetails;
+        window.quickAddEntry = quickAddEntry;
+    </script>
+</body>
+</html>
